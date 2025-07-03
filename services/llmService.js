@@ -16,7 +16,7 @@ const outputParser = new JsonOutputParser();
 
 // Optimized prompt template - more concise for faster processing
 const promptTemplate = PromptTemplate.fromTemplate(`
-You are a shopping assistant. Recommend the best products for: "{userQuery}"
+You are a shopping assistant. Analyze and rank products for: "{userQuery}"
 
 PRODUCTS:
 {products}
@@ -24,11 +24,15 @@ PRODUCTS:
 IMPORTANT: You must return a valid JSON array only. No other text.
 
 Return JSON array with recommended products (max 5):
-[{{"id": number, "explanation": "brief reason why this fits", "relevance_score": number}}]
+[{{"id": number, "explanation": "why we show this result", "relevance_score": number}}]
 
-Example: [{{"id": 1, "explanation": "Perfect for your needs", "relevance_score": 8}}]
+Example: [{{"id": 1, "explanation": "Ranked #1 because it directly matches your query criteria for price and features", "relevance_score": 8}}]
 
-Focus on most relevant matches. Keep explanations under 40 words.
+EXPLANATION GUIDELINES:
+- Explain WHY this result is shown (ranking logic, matching criteria)
+- NOT why the product fits needs, but WHY we selected/ranked it this way
+- Focus on search relevance, matching keywords, price relevance, category alignment
+- Keep explanations under 50 words.
 `);
 
 // Retry configuration for rate limiting and transient errors
