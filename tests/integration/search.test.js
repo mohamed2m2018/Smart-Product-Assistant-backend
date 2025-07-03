@@ -358,7 +358,8 @@ describe('Search Integration Tests', () => {
         successOnly: true,
         query: 'laptop',
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-12-31')
+        endDate: new Date('2024-12-31'),
+        userId: null
       });
     });
 
@@ -407,7 +408,7 @@ describe('Search Integration Tests', () => {
         .query({ limit: 5, days: 7 })
         .expect(200);
 
-      expect(searchHistoryService.getPopularSearches).toHaveBeenCalledWith(5, 7);
+      expect(searchHistoryService.getPopularSearches).toHaveBeenCalledWith(5, 7, null);
     });
 
     it('should handle popular searches errors', async () => {

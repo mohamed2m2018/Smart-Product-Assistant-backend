@@ -55,7 +55,8 @@ describe('SearchHistoryService', () => {
         userAgent: 'test-agent',
         ipAddress: '127.0.0.1',
         filters: {},
-        sortBy: null
+        sortBy: null,
+        userId: null
       });
 
       expect(result).toEqual(mockSearchHistory);
@@ -91,7 +92,8 @@ describe('SearchHistoryService', () => {
         userAgent: null,
         ipAddress: null,
         filters: {},
-        sortBy: null
+        sortBy: null,
+        userId: null
       });
 
       expect(result).toEqual(mockSearchHistory);
@@ -143,7 +145,10 @@ describe('SearchHistoryService', () => {
       });
 
       expect(models.SearchHistory.findAndCountAll).toHaveBeenCalledWith({
-        where: { success: true },
+        where: { 
+          success: true,
+          userId: null 
+        },
         order: [['createdAt', 'DESC']],
         limit: 2,
         offset: 0
@@ -172,7 +177,8 @@ describe('SearchHistoryService', () => {
         where: {
           query: {
             [require('sequelize').Op.iLike]: '%laptop%'
-          }
+          },
+          userId: null
         },
         order: [['createdAt', 'DESC']],
         limit: 20,

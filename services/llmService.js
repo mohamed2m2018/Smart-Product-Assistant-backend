@@ -2,64 +2,33 @@ const { ChatOpenAI } = require('@langchain/openai');
 const { PromptTemplate } = require('@langchain/core/prompts');
 const { JsonOutputParser } = require('@langchain/core/output_parsers');
 
-// Initialize OpenAI LLM with enhanced configuration
+// Initialize OpenAI LLM with performance-optimized configuration
 const llm = new ChatOpenAI({
   openAIApiKey: process.env.OPENAI_API_KEY,
   modelName: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-  temperature: 0.1, // Very low temperature for consistent product matching
-  maxTokens: 1000, // Limit response size
-  timeout: 30000, // 30 second timeout
+  temperature: 0.1,
+  maxTokens: 800, // Reduced for faster responses
+  timeout: 8000, // Reduced timeout for faster responses
 });
 
 // Define the output schema for structured parsing
 const outputParser = new JsonOutputParser();
 
-// Enhanced Smart Product Assistant prompt template with advanced prompt engineering
+// Optimized prompt template - more concise for faster processing
 const promptTemplate = PromptTemplate.fromTemplate(`
-You are a helpful shopping assistant helping customers find the perfect products. Your goal is to explain why specific products match what the customer is looking for in a friendly, conversational way.
+You are a shopping assistant. Recommend the best products for: "{userQuery}"
 
-USER'S REQUEST: "{userQuery}"
-
-AVAILABLE PRODUCTS:
+PRODUCTS:
 {products}
 
-INSTRUCTIONS FOR EXPLANATIONS:
-- Write like you're personally recommending to a friend
-- Focus on benefits and value, not technical matching
-- Be specific about why this product fits their needs
-- Keep explanations conversational and engaging (2-3 sentences)
-- Avoid phrases like "matches your query" or "key matches"
-- Sound natural and helpful, not robotic
+IMPORTANT: You must return a valid JSON array only. No other text.
 
-EXPLANATION STYLE EXAMPLES:
-✅ GOOD: "Perfect for gaming and creative work! This laptop delivers powerful performance with its RTX graphics and fast processor, plus it's portable enough for campus life."
-✅ GOOD: "These headphones are ideal for your commute - excellent noise cancellation blocks out distractions, and the 30-hour battery means you won't need to charge them daily."
-✅ GOOD: "A great choice for your home workout routine. The adjustable resistance and compact design make it perfect for small spaces, and it's built to last."
+Return JSON array with recommended products (max 5):
+[{{"id": number, "explanation": "brief reason why this fits", "relevance_score": number}}]
 
-❌ AVOID: "Great match for your query! Key matches: Contains gaming, has RTX graphics, matches laptop category."
-❌ AVOID: "This product matches your search criteria because it contains the requested keywords and features."
+Example: [{{"id": 1, "explanation": "Perfect for your needs", "relevance_score": 8}}]
 
-SCORING CRITERIA (1-10):
-- 9-10: Perfect match for the user's specific needs
-- 7-8: Very good match with minor limitations
-- 5-6: Good option but may not be ideal
-- 3-4: Okay alternative but missing key features
-- 1-2: Poor fit for the user's needs
-
-Only recommend products with scores of 5 or higher. If no products score 5+, return empty array [].
-
-REQUIRED JSON FORMAT:
-[
-  {{
-    "id": number,
-    "explanation": "Natural, conversational explanation of why this product is great for them",
-    "relevance_score": number
-  }}
-]
-
-Maximum 5 products. Focus on the best matches.
-
-JSON Response:
+Focus on most relevant matches. Keep explanations under 40 words.
 `);
 
 // Retry configuration for rate limiting and transient errors
@@ -83,10 +52,12 @@ class LLMServiceError extends Error {
 // Sleep utility for retry delays
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Pre-filtering removed - was causing no results issue
+
 // Smart Product Assistant service with enhanced error handling
 const llmService = {
   /**
-   * Analyze user query and recommend relevant products with advanced matching
+   * Analyze user query and recommend relevant products with enhanced performance
    * @param {string} userQuery - The user's search query or request
    * @param {Array} products - Array of product objects from the database
    * @returns {Promise<Array>} - Array of recommended products with explanations and scores
@@ -109,14 +80,19 @@ const llmService = {
         throw new LLMServiceError('OPENAI_API_KEY environment variable is not set', 'CONFIGURATION_ERROR');
       }
 
-      // Enhanced product formatting for better LLM understanding
+      // Use all products - pre-filtering removed for better results
+      if (products.length === 0) {
+        console.log('📭 No products available');
+        return [];
+      }
+
+      // Streamlined product formatting - more concise for faster processing
       const formattedProducts = products.map(product => ({
         id: product.id,
         name: product.name,
-        description: product.description,
+        description: (product.description || '').substring(0, 100) + '...', // Truncate descriptions safely
         price: `$${product.price}`,
         category: product.category,
-        key_features: llmService._extractKeyFeatures(product.attributes),
         brand: product.attributes?.brand || 'Unknown'
       }));
 
@@ -128,7 +104,7 @@ const llmService = {
         
         return await chain.invoke({
           userQuery: userQuery.trim(),
-          products: JSON.stringify(formattedProducts, null, 2)
+          products: JSON.stringify(formattedProducts)
         });
       });
 

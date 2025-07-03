@@ -122,6 +122,11 @@ const searchController = {
       // Pass the user query and filtered products to the llmService
       const recommendations = await llmService.getProductRecommendations(query, allProducts);
 
+      console.log(`🔍 LLM returned ${recommendations ? recommendations.length : 'null'} recommendations for "${query}"`);
+      if (recommendations && recommendations.length > 0) {
+        console.log(`🎯 First recommendation: ID ${recommendations[0].id}, Score: ${recommendations[0].relevance_score}`);
+      }
+
       // Handle case where no recommendations are found
       if (!recommendations || recommendations.length === 0) {
         const executionTime = Date.now() - startTime;
@@ -158,10 +163,13 @@ const searchController = {
 
       // Fetch the full product details for recommended IDs from database
       const enrichedProducts = [];
+      console.log(`🔧 Starting enrichment for ${recommendations.length} recommendations`);
       for (const recommendation of recommendations) {
         try {
+          console.log(`🔍 Looking for product ID: ${recommendation.id}`);
           const product = await productService.getProductById(recommendation.id);
           if (product) {
+            console.log(`✅ Found product: ${product.name}`);
             enrichedProducts.push({
               ...product.toJSON(),
               ai_explanation: recommendation.explanation,
@@ -174,6 +182,7 @@ const searchController = {
           console.error(`❌ Database error fetching product ${recommendation.id}:`, dbError.message);
         }
       }
+      console.log(`🎉 Enrichment complete: ${enrichedProducts.length} products enriched`);
 
       // Apply sorting to the enriched results
       const sortedProducts = searchController._applySorting(enrichedProducts, sortBy);
